@@ -20,7 +20,7 @@ Set `ANDROID_SDK_ROOT` if your Android SDK is somewhere else. This builds arm64-
 
 ## Publish a release
 
-Create a GitHub Release with the tag `local-gpu-v1`. Attach the two `.so.gz` files from `packages`, along with `SHA256SUMS` and `THIRD_PARTY_NOTICES.txt`. Keep the filenames unchanged and retain older assets so older app versions can still download their matching runtime.
+Create a GitHub Release with the tag `1`. Attach the two `.so.gz` files from `packages`, along with `SHA256SUMS` and `THIRD_PARTY_NOTICES.txt`. Keep the filenames unchanged and retain older assets so older app versions can still download their matching runtime.
 
 You can also run the build workflow. It saves the packages as a build artifact. Publishing is off by default; enable it explicitly when running the workflow if you want it to upload the release files.
 

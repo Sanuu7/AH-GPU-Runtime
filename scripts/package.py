@@ -4,7 +4,6 @@ from pathlib import Path
 import gzip
 import hashlib
 import json
-import shutil
 
 root = Path(__file__).resolve().parent.parent
 out = root / "packages"
@@ -14,6 +13,8 @@ for abi in ("arm64-v8a", "x86_64"):
     library = root / "build" / "stripped" / abi / "libggml-vulkan.so"
     data = library.read_bytes()
     assert data[:5] == b"\x7fELF\x02", f"Not a 64-bit ELF library: {library}"
+    expected_machine = 183 if abi == "arm64-v8a" else 62
+    assert int.from_bytes(data[18:20], "little") == expected_machine, f"Wrong architecture: {library}"
     digest = hashlib.sha256(data).hexdigest()
     name = f"gpu-{abi}-{digest}.so.gz"
     path = out / name

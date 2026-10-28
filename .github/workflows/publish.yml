@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: Publish the built files to the local-gpu-v1 release
+        description: Publish the built files to the 1 release
         type: boolean
         default: false
 permissions:
@@ -35,7 +35,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if ! gh release view local-gpu-v1 >/dev/null 2>&1; then
-            gh release create local-gpu-v1 --title 'AndroidHarness optional GPU runtime' --notes 'Optional Vulkan backends for AndroidHarness. The app verifies the library hash before loading a download.' --latest=false
+          if ! gh release view 1 >/dev/null 2>&1; then
+            gh release create 1 --title 'AndroidHarness optional GPU runtime' --notes 'Optional Vulkan backends for AndroidHarness. The app verifies the library hash before loading a download.' --latest=false
           fi
-          gh release upload local-gpu-v1 packages/*.so.gz packages/manifest.json packages/SHA256SUMS packages/THIRD_PARTY_NOTICES.txt --clobber
+          gh release upload 1 packages/*.so.gz packages/manifest.json packages/SHA256SUMS packages/THIRD_PARTY_NOTICES.txt --clobber
