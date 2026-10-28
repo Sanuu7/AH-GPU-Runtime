@@ -1,0 +1,46 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(ah_gpu_runtime LANGUAGES C CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
+set(GGML_BACKEND_DL ON CACHE BOOL "" FORCE)
+set(GGML_VULKAN ON CACHE BOOL "" FORCE)
+set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
+set(GGML_OPENMP OFF CACHE BOOL "" FORCE)
+set(GGML_CPU_KLEIDIAI OFF CACHE BOOL "" FORCE)
+set(GGML_LLAMAFILE OFF CACHE BOOL "" FORCE)
+set(GGML_CCACHE OFF CACHE BOOL "" FORCE)
+set(GGML_AVX OFF CACHE BOOL "" FORCE)
+set(GGML_AVX2 OFF CACHE BOOL "" FORCE)
+set(GGML_FMA OFF CACHE BOOL "" FORCE)
+set(GGML_F16C OFF CACHE BOOL "" FORCE)
+if(NOT ANDROID_ABI MATCHES "^(arm64-v8a|x86_64)$")
+    message(FATAL_ERROR "GPU runtime builds support arm64-v8a and x86_64")
+endif()
+include(FetchContent)
+FetchContent_Declare(vulkan_headers
+    URL https://codeload.github.com/KhronosGroup/Vulkan-Headers/tar.gz/v1.4.363
+    URL_HASH SHA256=cbaf687d3c59b9666fe080e7f8396b6b4f4d344a768ee6b337c59852f4526b68)
+FetchContent_Declare(spirv_headers
+    URL https://codeload.github.com/KhronosGroup/SPIRV-Headers/tar.gz/vulkan-sdk-1.4.341.0
+    URL_HASH SHA256=cab0a654c4917e16367483296b44cdb1d614e3120c721beafcd37e3a8580486c)
+FetchContent_Declare(llama
+    URL https://codeload.github.com/ggml-org/llama.cpp/tar.gz/19cce6919992fdffd92e0ac152caaf1e2b8f254e
+    URL_HASH SHA256=e16c6d1076af7a2bdb351e22176dd4b302f244ac4c3822604e2ec64a8a783d44
+    SOURCE_SUBDIR unused)
+FetchContent_MakeAvailable(vulkan_headers spirv_headers llama)
+set(Vulkan_INCLUDE_DIR "${vulkan_headers_SOURCE_DIR}/include" CACHE PATH "" FORCE)
+find_library(ANDROID_VULKAN_LIBRARY vulkan REQUIRED)
+set(Vulkan_LIBRARY "${ANDROID_VULKAN_LIBRARY}" CACHE FILEPATH "" FORCE)
+find_program(HOST_GLSLC glslc NO_CMAKE_FIND_ROOT_PATH REQUIRED)
+set(Vulkan_GLSLC_EXECUTABLE "${HOST_GLSLC}" CACHE FILEPATH "" FORCE)
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/spirv-config")
+file(WRITE "${CMAKE_BINARY_DIR}/spirv-config/SPIRV-HeadersConfig.cmake" "set(SPIRV-Headers_FOUND TRUE)\n")
+set(SPIRV-Headers_DIR "${CMAKE_BINARY_DIR}/spirv-config")
+include_directories("${spirv_headers_SOURCE_DIR}/include")
+# Keep the backend's upstream relative includes intact, but compile our checked-in source.
+file(REMOVE_RECURSE "${llama_SOURCE_DIR}/ggml/src/ggml-vulkan")
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/src/ggml-vulkan" DESTINATION "${llama_SOURCE_DIR}/ggml/src")
+add_subdirectory("${llama_SOURCE_DIR}/ggml" "${CMAKE_BINARY_DIR}/ggml")
+target_link_options(ggml-vulkan PRIVATE "-Wl,-soname,libggml-vulkan.so" "-Wl,-z,max-page-size=16384")

@@ -1,0 +1,10 @@
+/build/
+/.cache/
+/packages/
+/dist/
+local.properties
+*.so
+*.o
+*.spv
+__pycache__/
+.DS_Store

@@ -1,0 +1,41 @@
+name: Build GPU runtime
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'scripts/**', 'CMakeLists.txt', '.github/workflows/publish.yml']
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the built files to the local-gpu-v1 release
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency:
+  group: gpu-runtime-build
+  cancel-in-progress: false
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install build tools
+        run: |
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --install 'ndk;27.2.12479018'
+          sudo apt-get update && sudo apt-get install -y glslc ninja-build
+      - name: Build and package both architectures
+        run: ./scripts/build-android.sh
+      - name: Save packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: gpu-runtime-packages
+          path: packages/*
+      - name: Publish release files
+        if: github.event_name == 'workflow_dispatch' && inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view local-gpu-v1 >/dev/null 2>&1; then
+            gh release create local-gpu-v1 --title 'AndroidHarness optional GPU runtime' --notes 'Optional Vulkan backends for AndroidHarness. The app verifies the library hash before loading a download.' --latest=false
+          fi
+          gh release upload local-gpu-v1 packages/*.so.gz packages/manifest.json packages/SHA256SUMS packages/THIRD_PARTY_NOTICES.txt --clobber
